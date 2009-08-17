@@ -12,7 +12,9 @@ register = template.Library()
 
 DEFAULT_PAGINATION = getattr(settings, 'PAGINATION_DEFAULT_PAGINATION', 20)
 DEFAULT_WINDOW = getattr(settings, 'PAGINATION_DEFAULT_WINDOW', 4)
+DEFAULT_TERMINAL_WINDOW = getattr(settings, 'PAGINATION@DEFAULT_TERMINAL_WINDOW', 4)
 DEFAULT_ORPHANS = getattr(settings, 'PAGINATION_DEFAULT_ORPHANS', 0)
+PAGES_NOT_SMALL_ELISIONS = getattr(settings, 'PAGINATION_PAGES_NOT_SMALL_ELISIONS', True)
 INVALID_PAGE_RAISES_404 = getattr(settings,
     'PAGINATION_INVALID_PAGE_RAISES_404', False)
 
@@ -104,7 +106,7 @@ class AutoPaginateNode(template.Node):
         context['page_obj'] = page_obj
         return u''
 
-def paginate(context, window=DEFAULT_WINDOW):
+def paginate(context, window=DEFAULT_WINDOW, terminal_window=DEFAULT_TERMINAL_WINDOW):
     """
     Renders the ``pagination/pagination.html`` template, resulting in a
     Digg-like display of the available pages, given the current page.  If there
@@ -135,14 +137,14 @@ def paginate(context, window=DEFAULT_WINDOW):
         page_range = paginator.page_range
         # First and last are simply the first *n* pages and the last *n* pages,
         # where *n* is the current window size.
-        first = set(page_range[:window])
-        last = set(page_range[-window:])
+        first = set(page_range[:terminal_window])
+        last = set(page_range[-terminal_window:])
         # Now we look around our current page, making sure that we don't wrap
         # around.
         current_start = page_obj.number-1-window
         if current_start < 0:
             current_start = 0
-        current_end = page_obj.number-1+window
+        current_end = page_obj.number+window
         if current_end < 0:
             current_end = 0
         current = set(page_range[current_start:current_end])
@@ -159,7 +161,7 @@ def paginate(context, window=DEFAULT_WINDOW):
             # If there is a gap of two, between the last page of the first
             # set and the first page of the current set, then we're missing a
             # page.
-            if diff == 2:
+            if diff == 2 and PAGES_NOT_SMALL_ELISIONS:
                 pages.append(second_list[0] - 1)
             # If the difference is just one, then there's nothing to be done,
             # as the pages need no elusion and are correct.
@@ -183,7 +185,7 @@ def paginate(context, window=DEFAULT_WINDOW):
             # If there is a gap of two, between the last page of the current
             # set and the first page of the last set, then we're missing a 
             # page.
-            if diff == 2:
+            if diff == 2 and PAGES_NOT_SMALL_ELISIONS:
                 pages.append(second_list[0] - 1)
             # If the difference is just one, then there's nothing to be done,
             # as the pages need no elusion and are correct.
